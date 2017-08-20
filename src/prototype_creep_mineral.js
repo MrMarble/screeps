@@ -393,6 +393,11 @@ Creep.prototype.handleMineralCreep = function() {
     return true;
   }
 
+  // TODO maybe not the most important, but the check is easy
+  if (fillTowers(this)) {
+    return true;
+  }
+
   if (this.checkTerminalEnergy()) {
     return true;
   }
@@ -476,7 +481,6 @@ Creep.prototype.handleMineralCreep = function() {
     if (cleanUpLabs(this)) {
       return true;
     } else {
-      // fillTowers(this);
       this.moveRandom();
       return true;
     }
