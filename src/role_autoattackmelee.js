@@ -11,15 +11,14 @@ roles.autoattackmelee = {};
 roles.autoattackmelee.settings = {
   layoutString: 'MA',
   amount: [5, 5],
-  fillTough: true
+  fillTough: true,
 };
 
-roles.autoattackmelee.died = function(name, memory) {
-  console.log('--->', name, 'Died naturally?');
-  delete Memory.creeps[name];
+roles.autoattackmelee.died = function(name) {
+  brain.main.cleanUpDyingCreep(name);
 };
 
-roles.autoattackmelee.preMove = function(creep) {
+roles.autoattackmelee.preMove = function() {
   //  creep.log('!!!!!!!!!!!!!!!! Autoattacking');
 };
 
@@ -30,13 +29,13 @@ roles.autoattackmelee.action = function(creep) {
     creep.memory.notified = true;
   }
 
-  if (creep.room.name != creep.memory.routing.targetRoom) {
+  if (creep.room.name !== creep.memory.routing.targetRoom) {
     creep.memory.routing.reached = false;
     return true;
   }
 
   if (creep.room.controller.safeMode) {
-    let constructionSites = creep.room.find(FIND_CONSTRUCTION_SITES);
+    const constructionSites = creep.room.findConstructionSites();
     creep.moveTo(constructionSites[0]);
     return true;
   }
@@ -46,7 +45,7 @@ roles.autoattackmelee.action = function(creep) {
   if (spawn === null) {
     const hostileCreep = creep.findClosestEnemy();
     if (hostileCreep === null) {
-      const structures = creep.pos.findClosestByRangePropertyFilter(FIND_HOSTILE_STRUCTURES, 'structureType', [STRUCTURE_CONTROLLER], true);
+      const structures = creep.pos.findClosestByRangePropertyFilter(FIND_HOSTILE_STRUCTURES, 'structureType', [STRUCTURE_CONTROLLER], {inverse: true});
 
       if (structures === null) {
         const constructionSites = creep.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
@@ -65,13 +64,13 @@ roles.autoattackmelee.action = function(creep) {
   //  var path = creep.pos.findPathTo(spawn, {
   //    ignoreDestructibleStructures: true
   //  });
-  let search = PathFinder.search(
+  const search = PathFinder.search(
     creep.pos, {
       pos: spawn.pos,
-      range: 1
+      range: 1,
     }, {
-      maxRooms: 1
-    }
+      maxRooms: 1,
+    },
   );
   if (config.visualizer.enabled && config.visualizer.showPathSearches) {
     visualizer.showSearch(search);
@@ -80,13 +79,9 @@ roles.autoattackmelee.action = function(creep) {
   if (creep.pos.getRangeTo(spawn.pos) <= 1) {
     creep.attack(spawn);
   } else {
-    let structures = creep.pos.findInRange(FIND_STRUCTURES, 1);
+    const structures = creep.pos.findInRange(FIND_STRUCTURES, 1);
     creep.cancelOrder('attack');
-    let returnCode = creep.attack(structures[0]);
+    creep.attack(structures[0]);
   }
   return true;
-};
-
-roles.autoattackmelee.execute = function(creep) {
-  creep.log('Execute!!!');
 };

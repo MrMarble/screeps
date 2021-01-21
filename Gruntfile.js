@@ -1,58 +1,87 @@
-var localSync = [];
+let localSync = [];
 try {
-  localSync = require('./.localSync');
-} catch (e) {}
+  localSync = require('./.localSync'); // eslint-disable-line global-require
+} catch (e) {
+  // empty
+}
 
 module.exports = function(grunt) {
-  var account;
+  let account;
   try {
-    account = require('./account.screeps.com');
+    account = require('./account.screeps.com'); // eslint-disable-line global-require
   } catch (e) {
     account = {
       email: false,
-      password: false
+      password: false,
+    };
+  }
+
+  let account_local;
+  try {
+    account_local = require('./account_local.screeps.com')
+  } catch (e) {
+    account_local = {
+      email: false,
+      password: false,
     };
   }
 
   grunt.loadNpmTasks('grunt-screeps');
-  grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-jsbeautifier');
   grunt.loadNpmTasks('grunt-mocha-test');
-  grunt.loadNpmTasks('grunt-jscs');
+  grunt.loadNpmTasks('grunt-eslint');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-sync');
   grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-exec');
 
   grunt.initConfig({
     screeps: {
-      options: {
-        email: process.env.email || account.email,
-        password: process.env.password || account.password,
-        branch: 'default',
-        ptr: false
+      main: {
+        options: {
+          email: process.env.email || account.email,
+          password: process.env.password || account.password,
+          branch: 'default',
+          ptr: false,
+        },
+        files: [
+          {
+            src: ['dist/*.js'],
+          }
+        ],
       },
-      dist: {
-        src: ['dist/*.js']
-      }
-    },
-    jshint: {
-      all: ['Gruntfile.js', 'src/*.js'],
-      options: {
-        jshintrc: true
-      }
-    },
-    jsbeautifier: {
-      files: ['Gruntfile.js', 'src/*.js'],
-      options: {
-        config: '.jsbeautifyrc'
+      local: {
+        options: {
+          email: account_local.email,
+          password: account_local.password,
+          branch: account_local.branch,
+          ptr: false,
+          server: {
+            http: account_local.http,
+            port: account_local.port,
+            host: account_local.host,
+          }
+        },
+        files: [
+          {
+            src: ['dist/*.js'],
+          }
+        ],
       }
     },
     mochaTest: {
-      src: ['test/**/*.js']
+      src: ['test/**/*.js'],
     },
-    jscs: {
-      src: 'src/*.js'
+    eslint: {
+      check: {
+        src: 'src/*.js',
+      },
+      fix: {
+        src: 'src/*.js',
+        options: {
+          fix: true,
+        },
+      },
     },
     clean: ['dist/'],
     uglify: {
@@ -60,19 +89,19 @@ module.exports = function(grunt) {
         options: {
           compress: {
             global_defs: {
-              'MINIFIED': true
+              'MINIFIED': true,
             },
-            dead_code: true
-          }
+            dead_code: true,
+          },
         },
         files: {
           'dist/main.js': [
             'src/config.js',
             'src/config_local.js',
             'src/config_logging.js',
-            'src/config_brain_memory.js',
-            'src/config_brain_nextroom.js',
-            'src/config_brain_squadmanager.js',
+            'src/brain_memory.js',
+            'src/brain_nextroom.js',
+            'src/brain_squadmanager.js',
             'src/config_creep.js',
             'src/config_creep_resources.js',
             'src/config_creep_fight.js',
@@ -94,10 +123,10 @@ module.exports = function(grunt) {
             'src/config_room_routing.js',
             'src/config_room_wallsetter.js',
             'src/config_string.js',
-            'src/main.js'
-          ]
-        }
-      }
+            'src/main.js',
+          ],
+        },
+      },
     },
     copy: {
       main: {
@@ -110,9 +139,9 @@ module.exports = function(grunt) {
             '!require.js',
             '!config.js',
             '!config_logging.js',
-            '!config_brain_memory.js',
-            '!config_brain_nextroom.js',
-            '!config_brain_squadmanager.js',
+            '!brain_memory.js',
+            '!brain_nextroom.js',
+            '!brain_squadmanager.js',
             '!config_creep.js',
             '!config_creep_resources.js',
             '!config_creep_fight.js',
@@ -133,20 +162,20 @@ module.exports = function(grunt) {
             '!config_room_flags.js',
             '!config_room_routing.js',
             '!config_room_wallsetter.js',
-            '!config_string.js'
+            '!config_string.js',
           ],
           dest: 'dist/',
         }, {
           expand: true,
           cwd: 'node_modules/screeps-profiler',
           src: ['screeps-profiler.js'],
-          dest: 'dist/'
+          dest: 'dist/',
         }, {
           expand: true,
           cwd: 'screeps-elk/js',
           src: ['utils.logger.js'],
-          dest: 'dist/'
-        }]
+          dest: 'dist/',
+        }],
       },
       uglify: {
         files: [{
@@ -157,9 +186,9 @@ module.exports = function(grunt) {
             'require.js',
             'config.js',
             'config_logging.js',
-            'config_brain_memory.js',
-            'config_brain_nextroom.js',
-            'config_brain_squadmanager.js',
+            'brain_memory.js',
+            'brain_nextroom.js',
+            'brain_squadmanager.js',
             'config_creep.js',
             'config_creep_resources.js',
             'config_creep_fight.js',
@@ -180,31 +209,21 @@ module.exports = function(grunt) {
             'config_room_flags.js',
             'config_room_routing.js',
             'config_room_wallsetter.js',
-            'config_string.js'
+            'config_string.js',
           ],
           dest: 'dist/',
-        }]
+        }],
       },
       profiler: {
         files: [{
           expand: true,
           cwd: 'node_modules/screeps-profiler/',
           src: [
-            'screeps-profiler.js'
+            'screeps-profiler.js',
           ],
           dest: 'dist/',
-        }]
+        }],
       },
-      visualizer: {
-        files: [{
-          expand: true,
-          cwd: 'screeps-visual/',
-          src: [
-            'visual.js'
-          ],
-          dest: 'dist/',
-        }]
-      }
     },
 
     sync: {
@@ -212,18 +231,24 @@ module.exports = function(grunt) {
         files: localSync,
         updateAndDelete: true,
         verbose: true,
-        compareUsing: 'md5'
+        compareUsing: 'md5',
       },
-    }
+    },
+
+    exec: {
+      test_on_private_server: 'node utils/test.js 200',
+    },
   });
 
-  grunt.registerTask('default', ['jshint', 'jsbeautifier', 'jscs', 'clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'copy:visualizer', 'screeps']);
-  grunt.registerTask('release', ['jshint', 'jsbeautifier', 'jscs', 'clean', 'uglify', 'copy:main', 'requireFile', 'sync']);
-  grunt.registerTask('local', ['jshint', 'jsbeautifier', 'jscs', 'clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'copy:visualizer', 'sync']);
-  grunt.registerTask('test', ['jshint', 'jscs']);
-  grunt.registerTask('dev', ['jshint', 'jsbeautifier', 'jscs']);
-  grunt.registerTask('deploy', ['clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'copy:visualizer', 'screeps']);
-  grunt.registerTask('requireFile', 'Creates an empty file', function() {
+  grunt.log.writeln(new Date().toString());
+  grunt.registerTask('default', ['eslint:fix', 'clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'screeps:main']);
+  grunt.registerTask('release', ['eslint:fix', 'clean', 'uglify', 'copy:main', 'requireFile', 'sync']);
+  grunt.registerTask('local', ['eslint:fix', 'clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'sync']);
+  grunt.registerTask('test', ['eslint:check', 'mochaTest', 'exec:test_on_private_server']);
+  grunt.registerTask('dev', ['eslint:fix']);
+  grunt.registerTask('screeps_local', ['eslint:fix', 'clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'screeps:local']);
+  grunt.registerTask('deploy', ['clean', 'copy:uglify', 'copy:main', 'copy:profiler', 'screeps']);
+  grunt.registerTask('requireFile', 'Creates an empty file', () => {
     grunt.file.write('dist/require.js', '');
   });
 };

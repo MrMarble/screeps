@@ -19,7 +19,7 @@ roles.towerdrainer.settings = {
   layoutString: 'TMH',
   amount: [3, 5, 2], // attack RCL 5
   // amount: [2, 3, 1], // attack RCL 3
-  maxLayoutAmount: 1
+  maxLayoutAmount: 1,
 };
 
 roles.towerdrainer.getRestPosition = function(creep) {
@@ -29,13 +29,13 @@ roles.towerdrainer.getRestPosition = function(creep) {
     creep.notifyWhenAttacked(false);
     const room = Game.rooms[restRoom];
     const attackDirection = room.findExitTo(attackRoom);
-    const restDirection = (attackDirection + 3) % 8 + 1;
+    const restDirection = RoomPosition.oppositeDirection(attackDirection);
     const occupiedPositions = {};
-    _.filter(Game.creeps, c => c.memory.role === 'towerdrainer' && c.memory.restPosition).forEach(c => {
+    _.filter(Game.creeps, (c) => c.memory.role === 'towerdrainer' && c.memory.restPosition).forEach((c) => {
       occupiedPositions[c.memory.restPosition.x + c.memory.restPosition.y] = c.id;
     });
     const attackExits = room.find(attackDirection);
-    for (let exit of attackExits) {
+    for (const exit of attackExits) {
       const pos = exit.getAdjacentPosition(restDirection);
       if (!pos.checkForWall() && !pos.checkForObstacleStructure() && !occupiedPositions[pos.x + pos.y]) {
         creep.memory.restPosition = pos;
@@ -50,18 +50,16 @@ roles.towerdrainer.getRestPosition = function(creep) {
 
 roles.towerdrainer.action = function(creep) {
   const attackRoom = creep.memory.attackRoom;
-  const restPos = this.getRestPosition(creep);
+  const restPos = roles.towerdrainer.getRestPosition(creep);
   if (!restPos) {
     creep.log('no position');
     creep.moveRandom();
     return false;
   }
+  creep.selfHeal();
 
   if (creep.pos.roomName === attackRoom || creep.pos.isBorder(-1) && creep.pos.isNearTo(restPos.x, restPos.y)) {
-    creep.heal(creep);
     creep.move(creep.memory.restDirrection);
-  } else if (creep.hits < creep.hitsMax) {
-    creep.heal(creep);
   } else if (creep.pos.isEqualTo(restPos.x, restPos.y)) {
     creep.move(creep.memory.attackDirrection);
   } else {

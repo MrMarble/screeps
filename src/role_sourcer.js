@@ -17,11 +17,11 @@ roles.sourcer.settings = {
   param: ['energyCapacityAvailable'],
   prefixString: {
     300: 'MW',
-    600: 'MWC'
+    600: 'MWC',
   },
   layoutString: {
     300: 'W',
-    650: 'MW'
+    650: 'MW',
   },
   amount: {
     300: [1],
@@ -29,11 +29,11 @@ roles.sourcer.settings = {
     450: [3],
     550: [4],
     650: [1, 4],
-    700: [2, 4]
+    700: [2, 4],
   },
   maxLayoutAmount: {
-    300: 1
-  }
+    300: 1,
+  },
 };
 
 roles.sourcer.buildRoad = true;
@@ -42,92 +42,44 @@ roles.sourcer.killPrevious = true;
 // TODO should be true, but flee must be fixed before 2016-10-13
 roles.sourcer.flee = false;
 
-roles.sourcer.preMove = function(creep, directions) {
-  // Misplaced spawn
-  if (creep.inBase() && (creep.room.memory.misplacedSpawn || creep.room.controller.level < 3)) {
-    //creep.say('smis', true);
-    let targetId = creep.memory.routing.targetId;
-
-    var source = creep.room.memory.position.creep[targetId];
-    // TODO better the position from the room memory
-    creep.moveTo(source, {
-      ignoreCreeps: true
-    });
-    if (creep.pos.getRangeTo(source) > 1) {
-      return true;
-    }
-  }
-
-  if (!creep.room.controller) {
-    var target = creep.findClosestSourceKeeper();
-    if (target !== null) {
-      let range = creep.pos.getRangeTo(target);
-      if (range > 6) {
-        creep.memory.routing.reverse = false;
-      }
-      if (range < 6) {
-        creep.memory.routing.reverse = true;
-      }
-    }
-  }
-
-  // TODO Check if this is working
-  if (directions) {
-    let pos = creep.pos.getAdjacentPosition(directions.direction);
-    creep.moveCreep(pos, (directions.direction + 3) % 8 + 1);
-  }
-
-  // TODO copied from nextroomer, should be extracted to a method or a creep flag
-  // Remove structures in front
-  if (!directions) {
+roles.sourcer.updateSettings = function(room, creep) {
+  if (!room.storage) {
     return false;
   }
-  // TODO when is the forwardDirection missing?
-  if (directions.forwardDirection) {
-    let posForward = creep.pos.getAdjacentPosition(directions.forwardDirection);
-    let structures = posForward.lookFor(LOOK_STRUCTURES);
-    for (let structure of structures) {
-      if (structure.structureType === STRUCTURE_ROAD) {
-        continue;
-      }
-      if (structure.structureType === STRUCTURE_RAMPART && structure.my) {
-        continue;
-      }
-      if (structure.structureType === STRUCTURE_SPAWN && structure.my) {
-        continue;
-      }
-      creep.dismantle(structure);
-      creep.say('dismantle', true);
-      break;
-    }
+  const target = creep.routing && creep.routing.targetRoom ? creep.routing.targetRoom : room.name;
+  const inBase = (target === room.name);
+  if (!inBase && Memory.rooms[target].sourceKeeperRoom) {
+    return {
+      prefixString: 'MC',
+      layoutString: 'MW',
+      sufixString: 'MH',
+      amount: [5, 10],
+      maxLayoutAmount: 1,
+    };
   }
+  return false;
 };
 
-roles.sourcer.died = function(name, memory) {
-  //console.log(name, 'died', JSON.stringify(memory));
-  delete Memory.creeps[name];
+roles.sourcer.preMove = function(creep, directions) {
+  return creep.preMoveExtractorSourcer(directions);
 };
 
 roles.sourcer.action = function(creep) {
-  // TODO check source keeper structure for ticksToSpawn
-  if (!creep.room.controller) {
-    var target = creep.findClosestSourceKeeper();
-    if (target !== null) {
-      let range = creep.pos.getRangeTo(target);
-      if (range < 5) {
-        delete creep.memory.routing.reached;
-        creep.memory.routing.reverse = true;
-      }
-    }
+  creep.checkForSourceKeeper();
+
+  creep.setNextSpawn();
+  creep.spawnReplacement();
+
+  const source = Game.getObjectById(creep.memory.routing.targetId);
+  if (!creep.myHarvest(source)) {
+    return false;
   }
-
-  creep.handleSourcer();
+  creep.buildContainer();
+  creep.spawnCarry();
+  if (creep.inBase()) {
+    creep.baseHarvesting();
+  } else {
+    creep.selfHeal();
+  }
   return true;
-};
-
-roles.sourcer.execute = function(creep) {
-  creep.log('Execute!!!');
-  creep.memory.routing.targetReached = true;
-  creep.handleSourcer();
-  //  throw new Error();
 };

@@ -12,15 +12,10 @@ roles.mineral = {};
 roles.mineral.settings = {
   layoutString: 'MC',
   amount: [2, 2],
-  maxLayoutAmount: 10
+  maxLayoutAmount: 10,
 
 };
 
 roles.mineral.action = function(creep) {
-  return creep.handleMineralCreep();
-};
-
-roles.mineral.execute = function(creep) {
-  creep.log('EXECUTE');
   return creep.handleMineralCreep();
 };
